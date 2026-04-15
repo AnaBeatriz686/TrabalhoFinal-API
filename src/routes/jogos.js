@@ -99,4 +99,26 @@ router.get('/', (req, res) => {
     }
 });
 
+router.get('/:id', (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const stmt = db.prepare(`
+            SELECT 
+                p.*, c.nome AS categoria_nome 
+            FROM jogos p
+            INNER JOIN categorias c ON p.categoria_id = c.id
+            WHERE p.id = ?
+        `);
+        const jogo = stmt.get(id);
+        
+        if (!jogo) {
+            return res.status(404).json({ erro: 'Jogo não encontrado' });
+        }
+        res.json(jogo);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ erro: 'Erro ao buscar jogo' });
+    }
+});
+
 module.exports = router;
