@@ -121,4 +121,50 @@ router.get('/:id', (req, res) => {
     }
 });
 
+router.post('/', autenticar, (req, res) => {
+    try {
+        const { nome, preco, estoque = 0, categoria_id } = req.body;
+       
+        if (!nome || !preco || !categoria_id) {
+            return res.status(400).json({
+                erro: 'Campos obrigatórios: nome, preco, categoria_id'
+            });
+        }
+
+        if (typeof preco !== 'number' || preco <= 0) {
+            return res.status(400).json({ erro: 'Preço inválido' });
+        }
+       
+        const categoriaExiste = db.prepare(
+            'SELECT id FROM categorias WHERE id = ?'
+        ).get(categoria_id);
+       
+        if (!categoriaExiste) {
+            return res.status(400).json({ erro: 'Categoria não existe' });
+        }
+       
+        const stmt = db.prepare(`
+            INSERT INTO jogos (nome, preco, estoque, categoria_id)
+            VALUES (?, ?, ?, ?)
+        `);
+       
+        const result = stmt.run(nome, preco, estoque, categoria_id);
+        const id = result.lastInsertRowid;
+       
+        const jogoCriado = db.prepare(`
+            SELECT
+                p.*, c.nome AS categoria_nome
+            FROM jogos p
+            INNER JOIN categorias c ON p.categoria_id = c.id
+            WHERE p.id = ?
+        `).get(id);
+       
+        res.status(201).json(jogoCriado);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ erro: 'Erro ao criar jogo' });
+    }
+});
+
+
 module.exports = router;
