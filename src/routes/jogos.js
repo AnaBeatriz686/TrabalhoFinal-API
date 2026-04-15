@@ -166,5 +166,39 @@ router.post('/', autenticar, (req, res) => {
     }
 });
 
+router.put('/:id', autenticar, (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+       
+        const jogoExiste = db.prepare('SELECT * FROM jogos WHERE id = ?').get(id);
+        if (!jogoExiste) {
+            return res.status(404).json({ erro: 'Jogo não encontrado' });
+        }
+       
+        const { nome, preco, categoria_id, estoque } = req.body;
+       
+        if (!nome || !preco || !categoria_id) {
+            return res.status(400).json({ erro: 'Campos obrigatórios faltando' });
+        }
+        if (typeof preco !== 'number' || preco <= 0) {
+            return res.status(400).json({ erro: 'Preço inválido' });
+        }
+       
+        const stmt = db.prepare(`
+            UPDATE jogos
+            SET nome = ?, preco = ?, categoria_id = ?, estoque = ?
+            WHERE id = ?
+        `);
+       
+        stmt.run(nome, preco, categoria_id, estoque || 0, id);
+       
+        const jogoAtualizado = db.prepare('SELECT * FROM jogos WHERE id = ?').get(id);
+        res.json(jogoAtualizado);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ erro: 'Erro ao atualizar' });
+    }
+});
+
 
 module.exports = router;
